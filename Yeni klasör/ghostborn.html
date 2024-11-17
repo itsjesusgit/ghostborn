@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghostborn</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: url('background.png') no-repeat center center;
+            background-size: cover;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        .title {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 10;
+        }
+        .score {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            z-index: 10;
+        }
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: red;
+            text-align: center;
+            display: none;
+        }
+        .game-over button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 24px;
+            cursor: pointer;
+            background: white;
+            color: black;
+            border: none;
+            border-radius: 5px;
+        }
+        .game-over button:hover {
+            background: lightgray;
+        }
+    </style>
+</head>
+<body>
+    <div class="title">Ghostborn</div>
+    <div class="score">Score: 0</div>
+    <div class="game-over">
+        <div>Game Over</div>
+        <button onclick="restartGame()">Tekrar Oyna</button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let score = 0;
+        const ghosts = [];
+        const player = { x: canvas.width / 2, y: canvas.height / 2, size: 20, color: 'lime' };
+        const enemy = { x: 50, y: 50, size: 25, color: 'red', speed: 2 };
+        let gameActive = true;
+
+        function spawnGhost() {
+            const ghost = {
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: 15,
+                color: 'white',
+                collected: false
+            };
+            ghosts.push(ghost);
+        }
+
+        function drawPlayer() {
+            ctx.fillStyle = player.color;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawEnemy() {
+            ctx.fillStyle = enemy.color;
+            ctx.beginPath();
+            ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawGhosts() {
+            ghosts.forEach(ghost => {
+                if (!ghost.collected) {
+                    ctx.fillStyle = ghost.color;
+                    ctx.beginPath();
+                    ctx.arc(ghost.x, ghost.y, ghost.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        }
+
+        function updateScore() {
+            document.querySelector('.score').innerText = `Score: ${score}`;
+            if (score >= 20) {
+                document.querySelector('.game-over').style.display = 'block';
+                document.querySelector('.game-over div').innerText = 'You Win!';
+                gameActive = false;
+            }
+        }
+
+        function movePlayer(e) {
+            if (!gameActive) return;
+            const speed = 20;
+            if (e.key === 'ArrowUp') player.y -= speed;
+            if (e.key === 'ArrowDown') player.y += speed;
+            if (e.key === 'ArrowLeft') player.x -= speed;
+            if (e.key === 'ArrowRight') player.x += speed;
+        }
+
+        function checkCollision() {
+            ghosts.forEach(ghost => {
+                const dist = Math.hypot(player.x - ghost.x, player.y - ghost.y);
+                if (dist < player.size + ghost.size && !ghost.collected) {
+                    ghost.collected = true;
+                    score += 1;
+                    updateScore();
+                }
+            });
+
+            // Check collision with enemy
+            const distToEnemy = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+            if (distToEnemy < player.size + enemy.size) {
+                document.querySelector('.game-over').style.display = 'block';
+                document.querySelector('.game-over div').innerText = 'Game Over';
+                gameActive = false;
+            }
+        }
+
+        function moveEnemy() {
+            const dx = player.x - enemy.x;
+            const dy = player.y - enemy.y;
+            const distance = Math.hypot(dx, dy);
+
+            if (distance > 1) {
+                enemy.x += (dx / distance) * enemy.speed;
+                enemy.y += (dy / distance) * enemy.speed;
+            }
+        }
+
+        function gameLoop() {
+            if (!gameActive) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPlayer();
+            drawEnemy();
+            drawGhosts();
+            moveEnemy();
+            checkCollision();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function restartGame() {
+            document.querySelector('.game-over').style.display = 'none';
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            enemy.x = 50;
+            enemy.y = 50;
+            score = 0;
+            updateScore();
+            ghosts.length = 0; // Clear ghosts array
+            for (let i = 0; i < 10; i++) spawnGhost(); // Spawn new ghosts
+            gameActive = true;
+            gameLoop();
+        }
+
+        // Spawn initial ghosts
+        for (let i = 0; i < 20; i++) spawnGhost();
+
+        window.addEventListener('keydown', movePlayer);
+        gameLoop();
+    </script>
+</body>
+</html>
